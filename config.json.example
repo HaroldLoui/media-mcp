@@ -1,0 +1,19 @@
+{
+  "vision_api": {
+    "base_url": "https://token-plan-cn.xiaomimimo.com/anthropic",
+    "api_key": "tp-your-api-key-here",
+    "model": "mimo-v2-omni",
+    "max_tokens": 1024,
+    "timeout_seconds": 30
+  },
+  "ocr": {
+    "languages": ["chi_sim", "eng"],
+    "tesseract_cmd": null
+  },
+  "blocked_extensions": [
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff",
+    ".mp4", ".avi", ".mkv", ".mov", ".webm",
+    ".mp3", ".wav", ".flac", ".aac", ".ogg",
+    ".pdf"
+  ]
+}
