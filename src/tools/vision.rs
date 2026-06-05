@@ -188,6 +188,7 @@ pub async fn describe_image(
 }
 
 fn resize_image(data: &[u8], _path: &str) -> anyhow::Result<Vec<u8>> {
+    let format = image::guess_format(data).unwrap_or(image::ImageFormat::Png);
     let img = image::load_from_memory(data)?;
     // Scale down to max 2048px on longest side
     let longest = img.width().max(img.height());
@@ -199,6 +200,6 @@ fn resize_image(data: &[u8], _path: &str) -> anyhow::Result<Vec<u8>> {
     let new_h = (img.height() as f32 * scale) as u32;
     let resized = img.resize_exact(new_w, new_h, image::imageops::FilterType::Lanczos3);
     let mut buf = std::io::Cursor::new(Vec::new());
-    resized.write_to(&mut buf, image::ImageFormat::Png)?;
+    resized.write_to(&mut buf, format)?;
     Ok(buf.into_inner())
 }
