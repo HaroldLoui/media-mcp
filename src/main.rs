@@ -40,7 +40,11 @@ async fn main() -> Result<()> {
         config.languages_string()
     );
 
-    let server = MediaServer { config };
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(config.vision_api.timeout_seconds))
+        .build()?;
+
+    let server = MediaServer { config, client };
     let service = server.serve(stdio()).await.inspect_err(|e| {
         tracing::error!("MCP serve error: {:?}", e);
     })?;

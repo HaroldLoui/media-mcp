@@ -39,6 +39,7 @@ struct AnthropicResponse {
 
 #[derive(Debug, Deserialize)]
 struct ResponseContent {
+    #[allow(dead_code)]
     #[serde(rename = "type")]
     content_type: String,
     text: Option<String>,
@@ -51,6 +52,7 @@ pub struct VisionResult {
 
 /// Call vision API to describe an image. Returns description or warning.
 pub async fn describe_image(
+    client: &reqwest::Client,
     file_path: &str,
     mime_type: &str,
     config: &VisionApiConfig,
@@ -68,7 +70,7 @@ pub async fn describe_image(
 
     // Resize if too large (>10MB)
     let data = if image_data.len() > 10 * 1024 * 1024 {
-        match resize_image(&image_data, file_path) {
+        match resize_image(&image_data) {
             Ok(resized) => resized,
             Err(e) => {
                 return VisionResult {
@@ -97,18 +99,13 @@ pub async fn describe_image(
                     },
                 },
                 ContentBlock::Text {
-                    text: "请详细描述这张图片的内容，包括文字、界面元素、布局等。用中文回答。".to_string(),
+                    text: config.prompt.clone(),
                 },
             ],
         }],
     };
 
     let url = format!("{}/v1/messages", config.base_url.trim_end_matches('/'));
-
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(config.timeout_seconds))
-        .build()
-        .unwrap_or_default();
 
     // Retry once on failure
     for attempt in 0..2 {
@@ -187,7 +184,7 @@ pub async fn describe_image(
     }
 }
 
-fn resize_image(data: &[u8], _path: &str) -> anyhow::Result<Vec<u8>> {
+fn resize_image(data: &[u8]) -> anyhow::Result<Vec<u8>> {
     let format = image::guess_format(data).unwrap_or(image::ImageFormat::Png);
     let img = image::load_from_memory(data)?;
     // Scale down to max 2048px on longest side

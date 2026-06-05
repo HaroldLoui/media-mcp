@@ -28,6 +28,7 @@ struct ReadMediaResponse {
 #[derive(Debug, Clone)]
 pub struct MediaServer {
     pub config: Config,
+    pub client: reqwest::Client,
 }
 
 #[tool_router(server_handler)]
@@ -38,6 +39,47 @@ impl MediaServer {
         Parameters(ReadMediaRequest { file_path, language }): Parameters<ReadMediaRequest>,
     ) -> String {
         let lang = language.unwrap_or_else(|| self.config.languages_string());
+
+        // 0. Validate path
+        #[cfg(unix)]
+        {
+            if !file_path.starts_with('/') {
+                return serde_json::json!({
+                    "error": format!("Path must be absolute: {}", file_path)
+                })
+                .to_string();
+            }
+        }
+        #[cfg(windows)]
+        {
+            let bytes = file_path.as_bytes();
+            if bytes.len() < 2
+                || !bytes[0].is_ascii_alphabetic()
+                || bytes[1] != b':'
+            {
+                return serde_json::json!({
+                    "error": format!("Path must be absolute (e.g. C:\\...): {}", file_path)
+                })
+                .to_string();
+            }
+        }
+
+        // Resolve symlinks and normalize path
+        let resolved_path = match std::fs::canonicalize(&file_path) {
+            Ok(p) => p,
+            Err(e) => {
+                // file_not_found is OK (may not exist yet), but invalid paths are not
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    std::path::PathBuf::from(&file_path)
+                } else {
+                    return serde_json::json!({
+                        "error": format!("Invalid path '{}': {}", file_path, e)
+                    })
+                    .to_string();
+                }
+            }
+        };
+        let file_path = resolved_path.to_string_lossy().to_string();
 
         // 1. Metadata
         let meta = match metadata::extract_metadata(&file_path) {
@@ -65,7 +107,7 @@ impl MediaServer {
 
         // 3. Vision API (for images)
         let vision_result = if meta.mime_type.starts_with("image/") {
-            let result = vision::describe_image(&file_path, &meta.mime_type, &self.config.vision_api).await;
+            let result = vision::describe_image(&self.client, &file_path, &meta.mime_type, &self.config.vision_api).await;
             if let Some(w) = result.warning {
                 warnings.push(w);
             }

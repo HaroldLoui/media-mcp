@@ -17,6 +17,8 @@ pub struct VisionApiConfig {
     pub max_tokens: u32,
     #[serde(default = "default_timeout")]
     pub timeout_seconds: u64,
+    #[serde(default = "default_prompt")]
+    pub prompt: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -36,6 +38,10 @@ fn default_timeout() -> u64 {
 
 fn default_languages() -> Vec<String> {
     vec!["chi_sim".to_string(), "eng".to_string()]
+}
+
+fn default_prompt() -> String {
+    "请详细描述这张图片的内容，包括文字、界面元素、布局等。用中文回答。".to_string()
 }
 
 impl Config {
