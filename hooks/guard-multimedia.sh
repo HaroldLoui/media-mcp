@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # PreToolUse hook: block Read tool on multimedia files
 # Reads JSON from stdin, outputs decision JSON to stdout
 # No external dependencies (no jq required)
@@ -15,6 +16,9 @@ fi
 
 # Extract file_path from tool_input
 FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
+
+# Escape backslashes for valid JSON output (Windows paths)
+FILE_PATH_ESCAPED=$(echo "$FILE_PATH" | sed 's/\\/\\\\/g')
 
 if [ -z "$FILE_PATH" ]; then
     exit 0
@@ -34,7 +38,7 @@ BLOCKED_EXTENSIONS=(
 
 for ext in "${BLOCKED_EXTENSIONS[@]}"; do
     if [ ".$EXT_LOWER" = ".$ext" ]; then
-        echo "{\"decision\":\"block\",\"reason\":\"Multimedia file detected. Use read_media(file_path=\\\"$FILE_PATH\\\") from media-mcp tool instead of Read. The Read tool cannot process this file type and will cause an API error.\"}"
+        echo "{\"decision\":\"block\",\"reason\":\"Multimedia file detected. Use read_media(file_path=\\\"$FILE_PATH_ESCAPED\\\") from media-mcp tool instead of Read. The Read tool cannot process this file type and will cause an API error.\"}"
         exit 0
     fi
 done
