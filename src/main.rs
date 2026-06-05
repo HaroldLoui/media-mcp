@@ -1,9 +1,12 @@
 mod config;
+mod handlers;
 mod tools;
 
 use anyhow::Result;
 use clap::Parser;
 use config::Config;
+use handlers::MediaServer;
+use rmcp::{ServiceExt, transport::stdio};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -24,11 +27,24 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
     let config = Config::load(args.config.as_deref())?;
+
+    // Set TESSDATA_PREFIX for tesseract if configured
+    if let Some(ref cmd) = config.ocr.tesseract_cmd {
+        // SAFETY: Called once at startup before any threads read the env
+        unsafe { std::env::set_var("TESSDATA_PREFIX", cmd) };
+    }
+
     tracing::info!(
-        "Config loaded: model={}, ocr_langs={}",
+        "media-mcp starting: model={}, ocr_langs={}",
         config.vision_api.model,
         config.languages_string()
     );
 
+    let server = MediaServer { config };
+    let service = server.serve(stdio()).await.inspect_err(|e| {
+        tracing::error!("MCP serve error: {:?}", e);
+    })?;
+
+    service.waiting().await?;
     Ok(())
 }
