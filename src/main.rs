@@ -1,5 +1,8 @@
+mod config;
+
 use anyhow::Result;
 use clap::Parser;
+use config::Config;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -18,8 +21,13 @@ async fn main() -> Result<()> {
         .with_ansi(false)
         .init();
 
-    let _args = Args::parse();
-    tracing::info!("media-mcp starting");
+    let args = Args::parse();
+    let config = Config::load(args.config.as_deref())?;
+    tracing::info!(
+        "Config loaded: model={}, ocr_langs={}",
+        config.vision_api.model,
+        config.languages_string()
+    );
 
     Ok(())
 }
