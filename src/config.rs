@@ -34,6 +34,28 @@ pub struct OcrConfig {
 pub struct OcrEngines {
     #[serde(default)]
     pub tesseract: TesseractConfig,
+    #[serde(default)]
+    pub paddle: PaddleConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PaddleConfig {
+    pub paddle_cmd: Option<String>,
+    #[serde(default = "default_paddle_lang")]
+    pub lang: Option<String>,
+}
+
+fn default_paddle_lang() -> Option<String> {
+    Some("ch".to_string())
+}
+
+impl Default for PaddleConfig {
+    fn default() -> Self {
+        PaddleConfig {
+            paddle_cmd: None,
+            lang: Some("ch".to_string()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -60,6 +82,7 @@ impl Default for OcrEngines {
     fn default() -> Self {
         OcrEngines {
             tesseract: TesseractConfig::default(),
+            paddle: PaddleConfig::default(),
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::path::Path;
 
 pub mod tesseract;
+pub mod paddle;
 
 pub struct OcrResult {
     pub text: Option<String>,
@@ -45,7 +46,12 @@ impl EngineRegistry {
     pub fn new(config: &crate::config::OcrConfig) -> Self {
         let mut engines: Vec<Box<dyn OcrEngine>> = Vec::new();
 
-        // Register engines in priority order
+        // Register engines in priority order (paddle first — higher accuracy)
+        let paddle = paddle::PaddleEngine::new(
+            config.engines.paddle.paddle_cmd.clone(),
+            config.engines.paddle.lang.clone(),
+        );
+        engines.push(Box::new(paddle) as Box<dyn OcrEngine>);
         let tesseract = tesseract::TesseractEngine::new(
             config.engines.tesseract.tesseract_cmd.clone(),
         );
