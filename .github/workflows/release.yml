@@ -9,6 +9,8 @@ jobs:
   build:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -27,12 +29,13 @@ jobs:
         run: |
           cd target/release
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a ../../media-mcp-${{ matrix.os }}.zip media-mcp.exe
+            7z a ../../media-mcp-windows-x86_64.zip media-mcp.exe
           else
-            tar czf ../../media-mcp-${{ matrix.os }}.tar.gz media-mcp
+            tar czf ../../media-mcp-${{ runner.os }}.tar.gz media-mcp
           fi
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: media-mcp-*.zip media-mcp-*.tar.gz
+          files: |
+            media-mcp-*
