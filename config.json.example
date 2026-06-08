@@ -7,8 +7,17 @@
     "timeout_seconds": 30
   },
   "ocr": {
-    "languages": ["chi_sim", "eng"],
-    "tesseract_cmd": "D:\\workspace\\RustProjects\\media-mcp\\tessdata",
+    "default_engine": "auto",
+    "engines": {
+      "tesseract": {
+        "tesseract_cmd": null,
+        "languages": ["chi_sim", "eng"]
+      },
+      "paddle": {
+        "paddle_cmd": null,
+        "lang": "ch"
+      }
+    },
     "confidence_threshold": 60
   },
   "blocked_extensions": [
