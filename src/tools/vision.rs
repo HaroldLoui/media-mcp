@@ -35,6 +35,7 @@ struct ImageSource {
 #[derive(Debug, Deserialize)]
 struct AnthropicResponse {
     content: Vec<ResponseContent>,
+    stop_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -145,9 +146,13 @@ pub async fn describe_image(
                                 warning: Some("Vision API returned empty response".to_string()),
                             };
                         }
+                        let mut warning = None;
+                        if api_resp.stop_reason.as_deref() == Some("max_tokens") {
+                            warning = Some("AI description was truncated (hit max_tokens limit). Increase max_tokens in config for longer descriptions.".to_string());
+                        }
                         return VisionResult {
                             description: Some(text),
-                            warning: None,
+                            warning,
                         };
                     }
                     Err(e) => {

@@ -29,7 +29,7 @@ pub struct OcrConfig {
 }
 
 fn default_max_tokens() -> u32 {
-    1024
+    10240
 }
 
 fn default_timeout() -> u64 {

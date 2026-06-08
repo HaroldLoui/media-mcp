@@ -3,7 +3,7 @@
     "base_url": "https://token-plan-cn.xiaomimimo.com/anthropic",
     "api_key": "tp-your-api-key-here",
     "model": "mimo-v2-omni",
-    "max_tokens": 1024,
+    "max_tokens": 10000,
     "timeout_seconds": 30
   },
   "ocr": {
