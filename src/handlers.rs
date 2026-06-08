@@ -13,6 +13,8 @@ pub struct ReadMediaRequest {
     pub file_path: String,
     #[schemars(description = "OCR language hint, e.g. 'chi_sim+eng'")]
     pub language: Option<String>,
+    #[schemars(description = "Vision API mode: 'auto' (default, OCR-based fallback), 'always' (force Vision), 'skip' (OCR only)")]
+    pub vision: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -36,7 +38,7 @@ impl MediaServer {
     #[tool(description = "Read a multimedia file and return its metadata, OCR text, and AI-generated description. Supports images (PNG, JPG, GIF, BMP, WEBP, SVG, TIFF), documents (PDF), and media files (MP4, AVI, MP3, WAV, etc.). Use this instead of the Read tool for multimedia files.")]
     async fn read_media(
         &self,
-        Parameters(ReadMediaRequest { file_path, language }): Parameters<ReadMediaRequest>,
+        Parameters(ReadMediaRequest { file_path, language, vision }): Parameters<ReadMediaRequest>,
     ) -> String {
         let lang = language.unwrap_or_else(|| self.config.languages_string());
 
@@ -94,35 +96,60 @@ impl MediaServer {
 
         let mut warnings: Vec<String> = Vec::new();
 
-        // 2. OCR (for images)
-        let ocr_result = if meta.mime_type.starts_with("image/") {
-            let result = ocr::run_ocr(&file_path, &lang);
-            if let Some(w) = result.warning {
-                warnings.push(w);
-            }
-            result.text
-        } else {
-            None
-        };
+        // Determine vision mode
+        let vision_mode = vision.as_deref().unwrap_or("auto");
 
-        // 3. Vision API (for images)
-        let vision_result = if meta.mime_type.starts_with("image/") {
+        // 2. OCR (for images) — always run OCR for images
+        let mut ocr_text: Option<String> = None;
+        let mut need_vision = vision_mode == "always";
+
+        if meta.mime_type.starts_with("image/") {
+            if vision_mode == "skip" || vision_mode == "always" {
+                // Plain OCR, no confidence check
+                let result = ocr::run_ocr(&file_path, &lang);
+                if let Some(w) = result.warning {
+                    warnings.push(w);
+                }
+                ocr_text = result.text;
+                need_vision = vision_mode == "always";
+            } else {
+                // "auto" mode: OCR with confidence check
+                let result = ocr::run_ocr_with_confidence(&file_path, &lang);
+                if let Some(w) = result.warning {
+                    warnings.push(w);
+                }
+                ocr_text = result.text;
+
+                if result.average_confidence < self.config.ocr.confidence_threshold as f64 {
+                    need_vision = true;
+                    warnings.push(format!(
+                        "OCR confidence ({:.0}/100) below threshold ({}); falling back to Vision API",
+                        result.average_confidence,
+                        self.config.ocr.confidence_threshold,
+                    ));
+                }
+            }
+        } else {
+            warnings.push(format!(
+                "AI description not yet supported for {} files. Only images are supported in v0.1.",
+                meta.mime_type
+            ));
+        }
+
+        // 3. Vision API (when needed)
+        let vision_result = if need_vision && meta.mime_type.starts_with("image/") {
             let result = vision::describe_image(&self.client, &file_path, &meta.mime_type, &self.config.vision_api).await;
             if let Some(w) = result.warning {
                 warnings.push(w);
             }
             result.description
         } else {
-            warnings.push(format!(
-                "AI description not yet supported for {} files. Only images are supported in v0.1.",
-                meta.mime_type
-            ));
             None
         };
 
         let response = ReadMediaResponse {
             file: meta,
-            ocr_text: ocr_result,
+            ocr_text,
             ai_description: vision_result,
             warnings,
         };
