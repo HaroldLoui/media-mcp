@@ -1,13 +1,20 @@
 use serde::Serialize;
 use std::path::Path;
 
+/// Metadata about a multimedia file.
 #[derive(Debug, Clone, Serialize)]
 pub struct MediaMetadata {
+    /// File name (last path component).
     pub name: String,
+    /// Absolute path to the file.
     pub path: String,
+    /// File size in bytes.
     pub size_bytes: u64,
+    /// MIME type (e.g., "image/png", "application/pdf").
     pub mime_type: String,
+    /// File format/extension in uppercase (e.g., "PNG", "JPG").
     pub format: String,
+    /// Image dimensions as "WxH" (None for non-image files).
     pub dimensions: Option<String>,
 }
 

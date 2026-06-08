@@ -7,6 +7,21 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 
+/// Vision API mode for `read_media`.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Deserialize, schemars::JsonSchema)]
+pub enum VisionMode {
+    /// (default) OCR with confidence check; only fall back to Vision if confidence < threshold.
+    #[serde(rename = "auto")]
+    #[default]
+    Auto,
+    /// Use OCR only, skip Vision API.
+    #[serde(rename = "skip")]
+    Skip,
+    /// Force Vision API (run OCR + Vision unconditionally).
+    #[serde(rename = "always")]
+    Always,
+}
+
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct ReadMediaRequest {
     #[schemars(description = "Absolute path to the multimedia file")]
@@ -14,7 +29,7 @@ pub struct ReadMediaRequest {
     #[schemars(description = "OCR language hint, e.g. 'chi_sim+eng'")]
     pub language: Option<String>,
     #[schemars(description = "Vision API mode: 'auto' (default, OCR-based fallback), 'always' (force Vision), 'skip' (OCR only)")]
-    pub vision: Option<String>,
+    pub vision: Option<VisionMode>,
 }
 
 #[derive(Debug, Serialize)]
@@ -83,12 +98,25 @@ impl MediaServer {
         };
         let file_path = resolved_path.to_string_lossy().to_string();
 
-        // 1. Metadata
-        let meta = match metadata::extract_metadata(&file_path) {
-            Ok(m) => m,
+        // 1. Metadata (via spawn_blocking since image_dimensions is CPU-intensive)
+        let meta = match tokio::task::spawn_blocking({
+            let fp = file_path.clone();
+            move || metadata::extract_metadata(&fp)
+        })
+        .await
+        {
+            Ok(result) => match result {
+                Ok(m) => m,
+                Err(e) => {
+                    return serde_json::json!({
+                        "error": e.to_string()
+                    })
+                    .to_string();
+                }
+            },
             Err(e) => {
                 return serde_json::json!({
-                    "error": e.to_string()
+                    "error": format!("Metadata task join failed: {}", e)
                 })
                 .to_string();
             }
@@ -97,11 +125,11 @@ impl MediaServer {
         let mut warnings: Vec<String> = Vec::new();
 
         // Determine vision mode
-        let vision_mode = vision.as_deref().unwrap_or("auto");
+        let vision_mode = vision.unwrap_or_default();
 
         // 2. OCR (for images) — always run OCR for images
         let mut ocr_text: Option<String> = None;
-        let mut need_vision = vision_mode == "always";
+        let mut need_vision = vision_mode == VisionMode::Always;
 
         if meta.mime_type.starts_with("image/") {
             // Get OCR engine from registry
@@ -109,13 +137,13 @@ impl MediaServer {
             let engine = registry.get_engine(&self.config.ocr.default_engine);
 
             if let Some(engine) = engine {
-                if vision_mode == "skip" || vision_mode == "always" {
+                if vision_mode == VisionMode::Skip || vision_mode == VisionMode::Always {
                     let result = engine.run(&file_path, &lang);
                     if let Some(w) = result.warning {
                         warnings.push(w);
                     }
                     ocr_text = result.text;
-                    need_vision = vision_mode == "always";
+                    need_vision = vision_mode == VisionMode::Always;
                 } else {
                     let result = engine.run_with_confidence(&file_path, &lang);
                     if let Some(w) = result.warning {

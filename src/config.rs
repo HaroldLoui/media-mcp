@@ -1,46 +1,67 @@
 use serde::Deserialize;
 use std::path::PathBuf;
 
+/// Top-level configuration for the media-mcp server.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
+    /// Configuration for the Vision API (Anthropic-compatible endpoint).
     pub vision_api: VisionApiConfig,
+    /// OCR engine configuration.
     pub ocr: OcrConfig,
+    /// File extensions blocked by the PreToolUse hook.
     pub blocked_extensions: Vec<String>,
 }
 
+/// Vision API configuration (compatible with Anthropic messages API).
 #[derive(Debug, Clone, Deserialize)]
 pub struct VisionApiConfig {
+    /// API base URL (e.g., "https://api.example.com/anthropic").
     pub base_url: String,
+    /// API key for authentication.
     pub api_key: String,
+    /// Model name (e.g., "mimo-v2.5", "claude-opus-4-8").
     pub model: String,
+    /// Maximum tokens for the AI description response.
     #[serde(default = "default_max_tokens")]
     pub max_tokens: u32,
+    /// HTTP request timeout in seconds.
     #[serde(default = "default_timeout")]
     pub timeout_seconds: u64,
+    /// Prompt text sent to the Vision API for image description.
     #[serde(default = "default_prompt")]
     pub prompt: String,
 }
 
+/// OCR engine configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct OcrConfig {
+    /// Default engine selection mode: "auto" | "tesseract" | "paddle".
     #[serde(default = "default_engine")]
     pub default_engine: String,
+    /// Per-engine configurations.
     pub engines: OcrEngines,
+    /// Confidence threshold (0–100) for Vision API fallback in "auto" mode.
     #[serde(default = "default_confidence_threshold")]
     pub confidence_threshold: u32,
 }
 
+/// Per-engine configuration container.
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct OcrEngines {
+    /// Tesseract OCR engine configuration.
     #[serde(default)]
     pub tesseract: TesseractConfig,
+    /// PaddleOCR engine configuration.
     #[serde(default)]
     pub paddle: PaddleConfig,
 }
 
+/// PaddleOCR engine configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PaddleConfig {
+    /// Path to paddleocr executable (null = auto-detect from PATH).
     pub paddle_cmd: Option<String>,
+    /// Language code (e.g., "ch" for Chinese, "en" for English).
     #[serde(default = "default_paddle_lang")]
     pub lang: Option<String>,
 }
@@ -58,9 +79,12 @@ impl Default for PaddleConfig {
     }
 }
 
+/// Tesseract OCR engine configuration.
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct TesseractConfig {
+    /// Path to tesseract executable (null = auto-detect from PATH and common install locations).
     pub tesseract_cmd: Option<String>,
+    /// OCR languages (e.g., ["chi_sim", "eng"]). Joined with "+" for tesseract.
     #[serde(default = "default_languages")]
     pub languages: Vec<String>,
 }

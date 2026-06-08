@@ -3,6 +3,9 @@ name = "media-mcp"
 version = "0.1.0"
 edition = "2024"
 description = "MCP server for reading multimedia files as text (metadata + OCR + AI description)"
+authors = ["hanjinfeng"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/YOUR_USERNAME/media-mcp"
 
 [dependencies]
 rmcp = { version = "1.7", features = ["transport-io", "macros", "server", "base64", "schemars"] }
@@ -17,6 +20,12 @@ image = "0.25"
 mime_guess = "2"
 base64 = "0.22"
 reqwest = { version = "0.12", features = ["json"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
 
 [features]
 default = []
