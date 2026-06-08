@@ -1,11 +1,7 @@
-mod config;
-mod handlers;
-mod tools;
-
 use anyhow::Result;
 use clap::Parser;
-use config::Config;
-use handlers::MediaServer;
+use media_mcp::config::Config;
+use media_mcp::handlers::MediaServer;
 use rmcp::{ServiceExt, transport::stdio};
 use tracing_subscriber::EnvFilter;
 

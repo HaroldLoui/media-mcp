@@ -1,2 +1,5 @@
 .worktrees/
 target/
+*.traineddata
+ScreenShot_*.png
+.mcp.json
