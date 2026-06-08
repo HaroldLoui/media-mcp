@@ -28,14 +28,19 @@ jobs:
         shell: bash
         run: |
           cd target/release
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a ../../media-mcp-windows-x86_64.zip media-mcp.exe
-          else
-            tar czf ../../media-mcp-${{ runner.os }}.tar.gz media-mcp
-          fi
+          case "${{ matrix.os }}" in
+            windows-latest)
+              7z a -tzip media-mcp-windows-x86_64.zip media-mcp.exe
+              ;;
+            macos-latest)
+              tar czf media-mcp-macos-x86_64.tar.gz media-mcp
+              ;;
+            ubuntu-latest)
+              tar czf media-mcp-linux-x86_64.tar.gz media-mcp
+              ;;
+          esac
 
-      - name: Upload to Release
+      - name: Upload artifact to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            media-mcp-*
+          files: target/release/media-mcp-*
