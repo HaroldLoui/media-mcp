@@ -3,3 +3,4 @@ target/
 *.traineddata
 ScreenShot_*.png
 .mcp.json
+config.json

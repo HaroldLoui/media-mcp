@@ -1,14 +1,15 @@
 {
   "vision_api": {
-    "base_url": "https://token-plan-cn.xiaomimimo.com/anthropic",
-    "api_key": "tp-your-api-key-here",
-    "model": "mimo-v2-omni",
-    "max_tokens": 10000,
+    "base_url": "https://your-vision-api.example.com/anthropic",
+    "api_key": "your-api-key-here",
+    "model": "mimo-v2.5",
+    "max_tokens": 10240,
     "timeout_seconds": 30
   },
   "ocr": {
     "languages": ["chi_sim", "eng"],
-    "tesseract_cmd": null
+    "tesseract_cmd": "D:\\workspace\\RustProjects\\media-mcp\\tessdata",
+    "confidence_threshold": 60
   },
   "blocked_extensions": [
     ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg", ".ico", ".tiff",
