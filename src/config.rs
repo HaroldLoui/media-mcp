@@ -30,7 +30,7 @@ pub struct OcrConfig {
     pub confidence_threshold: u32,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct OcrEngines {
     #[serde(default)]
     pub tesseract: TesseractConfig,
@@ -58,7 +58,7 @@ impl Default for PaddleConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct TesseractConfig {
     pub tesseract_cmd: Option<String>,
     #[serde(default = "default_languages")]
@@ -67,24 +67,6 @@ pub struct TesseractConfig {
 
 fn default_engine() -> String {
     "auto".to_string()
-}
-
-impl Default for TesseractConfig {
-    fn default() -> Self {
-        TesseractConfig {
-            tesseract_cmd: None,
-            languages: vec!["chi_sim".to_string(), "eng".to_string()],
-        }
-    }
-}
-
-impl Default for OcrEngines {
-    fn default() -> Self {
-        OcrEngines {
-            tesseract: TesseractConfig::default(),
-            paddle: PaddleConfig::default(),
-        }
-    }
 }
 
 fn default_confidence_threshold() -> u32 {

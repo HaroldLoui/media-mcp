@@ -4,16 +4,14 @@ use super::{OcrResult, OcrResultWithConfidence, OcrEngine, validate_image};
 
 /// Find paddleocr executable
 fn find_paddleocr(cmd: &Option<String>) -> Option<String> {
-    if let Some(path) = cmd {
-        if Path::new(path).exists() {
-            return Some(path.clone());
-        }
+    if cmd.as_ref().is_some_and(|p| Path::new(p).exists()) {
+        return cmd.clone();
     }
     // Check PATH
-    if let Ok(output) = Command::new("paddleocr").arg("--help").output() {
-        if output.status.success() {
-            return Some("paddleocr".to_string());
-        }
+    if let Ok(output) = Command::new("paddleocr").arg("--help").output()
+        && output.status.success()
+    {
+        return Some("paddleocr".to_string());
     }
     None
 }
@@ -113,17 +111,13 @@ fn extract_paddle_text(output: &str) -> String {
     if let Ok(data) = serde_json::from_str::<serde_json::Value>(output) {
         if let Some(entries) = data.as_array() {
             for entry in entries {
-                if let Some(inner) = entry.as_array() {
-                    // inner[1] is (text, confidence)
-                    if inner.len() >= 2 {
-                        if let Some(text_conf) = inner[1].as_array() {
-                            if text_conf.len() >= 2 {
-                                if let Some(text) = text_conf[0].as_str() {
-                                    lines.push(text.to_string());
-                                }
-                            }
-                        }
-                    }
+                if let Some(inner) = entry.as_array()
+                    && inner.len() >= 2
+                    && let Some(text_conf) = inner[1].as_array()
+                    && text_conf.len() >= 2
+                    && let Some(text) = text_conf[0].as_str()
+                {
+                    lines.push(text.to_string());
                 }
             }
         }

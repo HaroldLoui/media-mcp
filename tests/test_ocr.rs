@@ -1,5 +1,5 @@
 /// Integration tests for OCR engines.
-use media_mcp::tools::ocr::{self, tesseract::TesseractEngine, OcrEngine};
+use media_mcp::tools::ocr::{tesseract::TesseractEngine, OcrEngine};
 
 const TEST_IMAGE: &str = r"D:\workspace\RustProjects\media-mcp\ScreenShot_2026-06-05_164142_386.png";
 

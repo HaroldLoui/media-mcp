@@ -4,16 +4,14 @@ use super::{OcrResult, OcrResultWithConfidence, OcrEngine, validate_image};
 
 /// Find tesseract executable in common locations
 fn find_tesseract(cmd: &Option<String>) -> Option<String> {
-    if let Some(path) = cmd {
-        if Path::new(path).exists() {
-            return Some(path.clone());
-        }
+    if cmd.as_ref().is_some_and(|p| Path::new(p).exists()) {
+        return cmd.clone();
     }
     // Check PATH first
-    if let Ok(output) = Command::new("tesseract").arg("--version").output() {
-        if output.status.success() {
-            return Some("tesseract".to_string());
-        }
+    if let Ok(output) = Command::new("tesseract").arg("--version").output()
+        && output.status.success()
+    {
+        return Some("tesseract".to_string());
     }
     // Common Windows install paths
     let candidates = [
