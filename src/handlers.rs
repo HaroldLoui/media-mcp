@@ -104,30 +104,38 @@ impl MediaServer {
         let mut need_vision = vision_mode == "always";
 
         if meta.mime_type.starts_with("image/") {
-            if vision_mode == "skip" || vision_mode == "always" {
-                // Plain OCR, no confidence check
-                let result = ocr::run_ocr(&file_path, &lang);
-                if let Some(w) = result.warning {
-                    warnings.push(w);
-                }
-                ocr_text = result.text;
-                need_vision = vision_mode == "always";
-            } else {
-                // "auto" mode: OCR with confidence check
-                let result = ocr::run_ocr_with_confidence(&file_path, &lang);
-                if let Some(w) = result.warning {
-                    warnings.push(w);
-                }
-                ocr_text = result.text;
+            // Get OCR engine from registry
+            let registry = ocr::EngineRegistry::new(&self.config.ocr);
+            let engine = registry.get_engine(&self.config.ocr.default_engine);
 
-                if result.average_confidence < self.config.ocr.confidence_threshold as f64 {
-                    need_vision = true;
-                    warnings.push(format!(
-                        "OCR confidence ({:.0}/100) below threshold ({}); falling back to Vision API",
-                        result.average_confidence,
-                        self.config.ocr.confidence_threshold,
-                    ));
+            if let Some(engine) = engine {
+                if vision_mode == "skip" || vision_mode == "always" {
+                    let result = engine.run(&file_path, &lang);
+                    if let Some(w) = result.warning {
+                        warnings.push(w);
+                    }
+                    ocr_text = result.text;
+                    need_vision = vision_mode == "always";
+                } else {
+                    let result = engine.run_with_confidence(&file_path, &lang);
+                    if let Some(w) = result.warning {
+                        warnings.push(w);
+                    }
+                    ocr_text = result.text;
+
+                    if result.average_confidence < self.config.ocr.confidence_threshold as f64 {
+                        need_vision = true;
+                        warnings.push(format!(
+                            "OCR confidence ({:.0}/100) below threshold ({}); falling back to Vision API",
+                            result.average_confidence,
+                            self.config.ocr.confidence_threshold,
+                        ));
+                    }
                 }
+            } else {
+                warnings.push(
+                    "No OCR engine available. Install Tesseract or PaddleOCR.".to_string(),
+                );
             }
         } else {
             warnings.push(format!(
@@ -172,7 +180,11 @@ impl MediaServer {
         });
 
         // Check OCR availability
-        status["ocr_available"] = serde_json::json!(ocr::is_available());
+        let registry = ocr::EngineRegistry::new(&self.config.ocr);
+        status["ocr_available"] = serde_json::json!({
+            "available": registry.get_engine("auto").is_some(),
+            "engines": registry.available_engines(),
+        });
 
         status.to_string()
     }

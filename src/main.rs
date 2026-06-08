@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     let config = Config::load(args.config.as_deref())?;
 
     // Set TESSDATA_PREFIX for tesseract if configured
-    if let Some(ref cmd) = config.ocr.tesseract_cmd {
+    if let Some(ref cmd) = config.ocr.engines.tesseract.tesseract_cmd {
         // SAFETY: Called once at startup before any threads read the env
         unsafe { std::env::set_var("TESSDATA_PREFIX", cmd) };
     }

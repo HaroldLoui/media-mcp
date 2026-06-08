@@ -23,11 +23,45 @@ pub struct VisionApiConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OcrConfig {
-    #[serde(default = "default_languages")]
-    pub languages: Vec<String>,
-    pub tesseract_cmd: Option<String>,
+    #[serde(default = "default_engine")]
+    pub default_engine: String,
+    pub engines: OcrEngines,
     #[serde(default = "default_confidence_threshold")]
     pub confidence_threshold: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct OcrEngines {
+    #[serde(default)]
+    pub tesseract: TesseractConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TesseractConfig {
+    pub tesseract_cmd: Option<String>,
+    #[serde(default = "default_languages")]
+    pub languages: Vec<String>,
+}
+
+fn default_engine() -> String {
+    "auto".to_string()
+}
+
+impl Default for TesseractConfig {
+    fn default() -> Self {
+        TesseractConfig {
+            tesseract_cmd: None,
+            languages: vec!["chi_sim".to_string(), "eng".to_string()],
+        }
+    }
+}
+
+impl Default for OcrEngines {
+    fn default() -> Self {
+        OcrEngines {
+            tesseract: TesseractConfig::default(),
+        }
+    }
 }
 
 fn default_confidence_threshold() -> u32 {
@@ -79,6 +113,6 @@ impl Config {
     }
 
     pub fn languages_string(&self) -> String {
-        self.ocr.languages.join("+")
+        self.ocr.engines.tesseract.languages.join("+")
     }
 }
