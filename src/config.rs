@@ -26,6 +26,12 @@ pub struct OcrConfig {
     #[serde(default = "default_languages")]
     pub languages: Vec<String>,
     pub tesseract_cmd: Option<String>,
+    #[serde(default = "default_confidence_threshold")]
+    pub confidence_threshold: u32,
+}
+
+fn default_confidence_threshold() -> u32 {
+    60
 }
 
 fn default_max_tokens() -> u32 {
