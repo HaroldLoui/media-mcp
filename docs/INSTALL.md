@@ -143,7 +143,7 @@ cargo build --release
 ```json
 {
   "hooks": {
-    "PreToolUse": "D:\\path\\to\\media-mcp\\hooks\\guard-multimedia.sh"
+    "PreToolUse": "D:/path/to/media-mcp/hooks/guard-multimedia.sh"
   }
 }
 ```
